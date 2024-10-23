@@ -9,21 +9,23 @@ import com.order.order.common.SucessOrderRespnse;
 import com.order.order.dto.OrderDTO;
 import com.order.order.model.Orders;
 import com.order.order.repo.OrderRepo;
+import com.product.product.dto.ProductDTO;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 
 @Service
 @Transactional
 public class OrderService {
-    private final WebClient webClient;
-//    private final WebClient inventoryWebClient;
-//    private final WebClient productWebClient;
+    private final WebClient inventoryWebClient;
+    private final WebClient productWebClient;
 
     @Autowired
     private OrderRepo orderRepo;
@@ -31,16 +33,12 @@ public class OrderService {
     @Autowired
     private ModelMapper modelMapper;
 
-    public OrderService(WebClient webClient) {
-        this.webClient = webClient;
+    public OrderService(WebClient inventoryWebClient, WebClient productWebClient, OrderRepo orderRepo, ModelMapper modelMapper) {
+        this.inventoryWebClient = inventoryWebClient;
+        this.productWebClient = productWebClient;
+        this.orderRepo = orderRepo;
+        this.modelMapper = modelMapper;
     }
-
-//    public OrderService(WebClient inventoryWebClient, WebClient productWebClient, OrderRepo orderRepo, ModelMapper modelMapper) {
-//        this.inventoryWebClient = inventoryWebClient;
-//        this.productWebClient = productWebClient;
-//        this.orderRepo = orderRepo;
-//        this.modelMapper = modelMapper;
-//    }
 
     public List<OrderDTO> getAllOrders() {
         List<Orders>orderList = orderRepo.findAll();
@@ -52,24 +50,42 @@ public class OrderService {
         Integer itemId = orderDTO.getItemId();
 
         try {
-            InventoryDTO inventoryResponse = webClient.get()
-                    .uri(uriBuilder -> uriBuilder.path("http://localhost:8081/api/v1/item/{itemId}").build(itemId))
+            InventoryDTO inventoryResponse = inventoryWebClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/item/{itemId}").build(itemId))
                     .retrieve()
                     .bodyToMono(InventoryDTO.class)
                     .block();
 
             assert inventoryResponse != null;
+
+            Integer productId = inventoryResponse.getProductId();
+
+            ProductDTO productResponse = productWebClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/product/{productId}").build(productId))
+                    .retrieve()
+                    .bodyToMono(ProductDTO.class)
+                    .block();
+
+            assert productResponse != null;
+
             if (inventoryResponse.getQuantity() > 0) {
-                Orders order = modelMapper.map(orderDTO, Orders.class);
-                orderRepo.save(order);
-                return new SucessOrderRespnse(modelMapper.map(order, OrderDTO.class));
+                if(productResponse.getForSale() == 1) {
+                    Orders order = modelMapper.map(orderDTO, Orders.class);
+                    orderRepo.save(order);
+                } else {
+                    return new ErrorOrderResponse("Item is not for sale");
+                }
+                return new SucessOrderRespnse(orderDTO);
             } else {
                 return new ErrorOrderResponse("Item not available");
             }
         }
-        catch (Exception e) {
-
+        catch (WebClientResponseException e) {
+            if (e.getStatusCode().is5xxServerError()) {
+                return new ErrorOrderResponse("Item not found");
+            }
         }
+        return null;
     }
 
     public OrderDTO updateOrder(OrderDTO OrderDTO) {

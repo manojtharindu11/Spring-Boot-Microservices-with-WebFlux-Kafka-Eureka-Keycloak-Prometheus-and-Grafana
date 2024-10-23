@@ -1,5 +1,6 @@
 package com.order.order.controller;
 
+import com.order.order.common.OrderResponse;
 import com.order.order.dto.OrderDTO;
 import com.order.order.dto.OrderEventDTO;
 import com.order.order.service.OrderService;
@@ -25,15 +26,10 @@ public class OrderController {
         return orderService.getOrderById(orderId);
     }
 
-//    @PostMapping("/addorder")
-//    public OrderResponse saveOrder(@RequestBody OrderDTO orderDTO) {
-//        OrderEventDTO orderEventDTO = new OrderEventDTO();
-//        orderEventDTO.setMessage("Order is committed");
-//        orderEventDTO.setStatus("pending");
-//        orderProducer.sendMessage(orderEventDTO);
-//
-//        return orderService.saveOrder(orderDTO);
-//    }
+    @PostMapping("/addorder")
+    public OrderResponse saveOrder(@RequestBody OrderDTO orderDTO) {
+        return orderService.saveOrder(orderDTO);
+    }
 
     @PutMapping("/updateorder")
     public OrderDTO updateOrder(@RequestBody OrderDTO orderDTO) {
