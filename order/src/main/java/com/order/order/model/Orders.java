@@ -13,7 +13,6 @@ import lombok.NoArgsConstructor;
 @Data
 public class Orders {
     @Id
-    @GeneratedValue
     private int id;
     private int itemId;
     private String orderDate;
