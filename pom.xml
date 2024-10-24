@@ -20,6 +20,7 @@
     <module>inventory</module>
     <module>product</module>
       <module>base</module>
+    <module>servicediscovery</module>
   </modules>
 
   <properties>
