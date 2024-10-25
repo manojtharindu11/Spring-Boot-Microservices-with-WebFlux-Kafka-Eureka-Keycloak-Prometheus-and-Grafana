@@ -18,7 +18,6 @@ This project demonstrates a microservices architecture using Spring Boot with We
 
 To run **Prometheus** with Docker:
 
-    ```bash
     docker run -p 9090:9090 -v "C:\Users\manoj\Desktop\ALT+255\On\ABC_Companies\prometheus\prometheus.yml:/etc/prometheus/prometheus.yml" prom/prometheus --config.file=/etc/prometheus/prometheus.yml
-    ```
+
 ---
